@@ -20,6 +20,8 @@
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
+            /* TOUCH PERFORMANCE FIX: Remove default touch behaviors that cause lag */
+            touch-action: manipulation;
         }
 
         body, html {
@@ -129,12 +131,25 @@
         }
 
         button:active { transform: scale(0.95); box-shadow: none; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
         .btn-input { background-color: var(--lavender); }
         .btn-start { background-color: #ff85a2; color: white; font-size: 1.5rem; }
         .btn-end-practice { background-color: #ff6b6b; color: white; display: none; }
-        .btn-whole-sentence { background-color: #ffd93d; margin-bottom: 2vh; font-size: 1.3rem; }
+        .btn-whole-sentence { background-color: #ffd93d; margin-bottom: 1vh; font-size: 1.3rem; }
         .btn-reset { background-color: #ff9aa2; color: white; }
+
+        /* Recording Controls Styling */
+        .recording-container {
+            margin-bottom: 2vh;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-rec { background-color: #ff4d4d; color: white; }
+        .btn-stop { background-color: #555; color: white; }
+        .btn-play-rec { background-color: #4CAF50; color: white; }
+        .rec-status { color: #ff4d4d; font-weight: bold; min-width: 100px; }
 
         #choice-screen {
             display: none;
@@ -275,11 +290,19 @@
     <div id="choice-screen"></div>
 
     <div id="reading-screen">
-        <button id="btn-read-full" class="btn-whole-sentence">🔊 Read Whole Sentence</button>
+        <div class="recording-container">
+            <button id="btn-record" class="btn-rec" onpointerdown="startRecording()">🎤 Record</button>
+            <button id="btn-stop-rec" class="btn-stop" onpointerdown="stopRecording()" disabled>⏹ Stop</button>
+            <button id="btn-play-rec" class="btn-play-rec" onpointerdown="playRecording()" disabled>▶️ Play</button>
+            <span id="rec-status" class="rec-status"></span>
+        </div>
+        
+        <button id="btn-read-full" class="btn-whole-sentence" onpointerdown="readWholeSentenceUI()">🔊 Read Whole Sentence</button>
         <div id="word-display" class="word-container"></div>
+        
         <div class="nav-controls">
-            <button style="background:#ccc" onclick="showChoiceScreen()">⬅ BACK</button>
-            <button style="background:#50c878; color:white; font-size:1.5rem" onclick="triggerReward()">⭐ FINISH</button>
+            <button style="background:#ccc" onpointerdown="showChoiceScreen()">⬅ BACK</button>
+            <button style="background:#50c878; color:white; font-size:1.5rem" onpointerdown="triggerReward()">⭐ FINISH</button>
         </div>
     </div>
 
@@ -290,29 +313,34 @@
     const synth = window.speechSynthesis;
     let preferredVoice = null;
     let isReadingSentence = false;
+    let currentSentenceText = "";
 
-    // --- TTS: FIXED VOICE SELECTION ---
+    // Voice Recording Variables
+    let mediaRecorder;
+    let audioChunks = [];
+    let audioUrl;
+    let audioBlob;
+    let recordTimer;
+
+    // --- TTS Logic ---
     function loadVoices() {
         const voices = synth.getVoices();
-        // Priority: Natural Female voices (Google US English, Samantha, etc.)
         preferredVoice = voices.find(v => (v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Female')) && v.lang.includes('en-US')) 
                         || voices.find(v => v.lang.includes('en')) 
                         || voices[0];
     }
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-        speechSynthesis.onvoiceschanged = loadVoices;
-    }
+    if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
     loadVoices();
 
     function getSpeechSettings(text) {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.voice = preferredVoice;
-        utterance.rate = 0.60;  // Natural slow rate
-        utterance.pitch = 1.10; // Friendly child-tone
+        utterance.rate = 0.60;
+        utterance.pitch = 1.10;
         return utterance;
     }
 
-    // --- Sound FX ---
+    // --- TOUCH PERFORMANCE: Click Sound & Fast Tap Logic ---
     function playClickSound() {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = audioCtx.createOscillator();
@@ -327,54 +355,114 @@
         osc.stop(audioCtx.currentTime + 0.1);
     }
 
-    document.addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON' || e.target.classList.contains('chibi-box') || e.target.classList.contains('word-btn')) {
+    // Using pointerdown for instant response on touch devices
+    document.addEventListener('pointerdown', (e) => {
+        if (e.target.tagName === 'BUTTON' || e.target.classList.contains('chibi-box')) {
             playClickSound();
         }
     }, true);
 
-    // --- WHOLE SENTENCE READING: NO HIGHLIGHTING ---
+    function readWholeSentenceUI() {
+        readWholeSentence(currentSentenceText);
+    }
+
     function readWholeSentence(fullText) {
         if (isReadingSentence) return;
-        synth.cancel();
-
-        // 200ms delay for natural feel
+        synth.cancel(); // Fast cleanup
+        
         setTimeout(() => {
             isReadingSentence = true;
             const utterance = getSpeechSettings(fullText);
-            
-            utterance.onend = () => {
-                isReadingSentence = false;
-            };
-
+            utterance.onend = () => isReadingSentence = false;
             synth.speak(utterance);
-        }, 200);
+        }, 150);
     }
 
     function speakWord(word, el) {
         if (isReadingSentence) return;
-        synth.cancel();
+        synth.cancel(); // Fast cleanup: stop previous speech immediately
         
-        // 100ms delay for natural word feel
         setTimeout(() => {
             const utterance = getSpeechSettings(word);
             el.classList.add('speaking');
             utterance.onend = () => el.classList.remove('speaking');
             synth.speak(utterance);
-        }, 100);
+        }, 50); // Minimal delay for performance
     }
 
-    // --- RESET FUNCTION ---
+    // --- VOICE RECORDING FEATURE ---
+    async function startRecording() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                audioUrl = URL.createObjectURL(audioBlob);
+                document.getElementById('btn-play-rec').disabled = false;
+                document.getElementById('rec-status').innerText = "";
+            };
+
+            mediaRecorder.start();
+            
+            // UI State
+            document.getElementById('btn-record').disabled = true;
+            document.getElementById('btn-stop-rec').disabled = false;
+            document.getElementById('btn-play-rec').disabled = true;
+            document.getElementById('rec-status').innerText = "🔴 Recording...";
+
+            // Auto-stop after 12 seconds
+            recordTimer = setTimeout(() => {
+                if (mediaRecorder.state === "recording") stopRecording();
+            }, 12000);
+
+        } catch (err) {
+            alert("Microphone not supported or access denied on this device.");
+            console.error(err);
+        }
+    }
+
+    function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+            clearTimeout(recordTimer);
+            document.getElementById('btn-record').disabled = false;
+            document.getElementById('btn-stop-rec').disabled = true;
+            // Stream tracks should be stopped to release mic
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        }
+    }
+
+    function playRecording() {
+        if (audioUrl) {
+            const audio = new Audio(audioUrl);
+            audio.play();
+        }
+    }
+
+    function resetRecordingUI() {
+        if (mediaRecorder && mediaRecorder.state === "recording") stopRecording();
+        document.getElementById('btn-play-rec').disabled = true;
+        document.getElementById('btn-record').disabled = false;
+        document.getElementById('btn-stop-rec').disabled = true;
+        document.getElementById('rec-status').innerText = "";
+        audioUrl = null;
+    }
+
+    // --- DATA & FLOW ---
     function resetInputData() {
         if (confirm("Are you sure you want to clear all inputs and saved data?")) {
             localStorage.removeItem('mikee_hub_data');
             document.getElementById('lesson-title').value = "";
             document.querySelectorAll('.sentence-box').forEach(input => input.value = "");
-            alert("Reset complete! 🧹");
         }
     }
 
-    // --- UI FLOW ---
     function toggleInputPanel() {
         const panel = document.getElementById('input-panel');
         const menuBtns = document.getElementById('menu-buttons');
@@ -394,7 +482,7 @@
             const div = document.createElement('div');
             div.className = 'chibi-box';
             div.innerText = text;
-            div.onclick = () => openFullscreen(text);
+            div.onpointerdown = () => openFullscreen(text);
             grid.appendChild(div);
         });
 
@@ -405,17 +493,22 @@
     }
 
     function openFullscreen(sentence) {
+        currentSentenceText = sentence;
+        resetRecordingUI();
         const display = document.getElementById('word-display');
         display.innerHTML = '';
         sentence.split(/\s+/).forEach(word => {
             const btn = document.createElement('div');
             btn.className = 'word-btn';
             btn.innerText = word;
-            btn.onclick = () => speakWord(word, btn);
+            // TOUCH PERFORMANCE: use pointerdown for instant triggers
+            btn.onpointerdown = (e) => {
+                e.preventDefault();
+                speakWord(word, btn);
+            };
             display.appendChild(btn);
         });
 
-        document.getElementById('btn-read-full').onclick = () => readWholeSentence(sentence);
         document.getElementById('choice-screen').style.display = 'none';
         document.getElementById('reading-screen').style.display = 'flex';
     }
@@ -423,6 +516,7 @@
     function showChoiceScreen() {
         synth.cancel();
         isReadingSentence = false;
+        resetRecordingUI();
         document.getElementById('reading-screen').style.display = 'none';
         document.getElementById('choice-screen').style.display = 'flex';
     }
@@ -430,6 +524,7 @@
     function exitToMenu() {
         synth.cancel();
         isReadingSentence = false;
+        resetRecordingUI();
         document.getElementById('reading-screen').style.display = 'none';
         document.getElementById('choice-screen').style.display = 'none';
         document.getElementById('main-menu').style.display = 'flex';
@@ -446,7 +541,6 @@
         }, 1500);
     }
 
-    // --- DATA HANDLING ---
     function saveData() {
         const data = { 
             title: document.getElementById('lesson-title').value,
