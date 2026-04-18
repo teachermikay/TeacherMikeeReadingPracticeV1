@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Teacher Mikee's English Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --pink: #ffcfdf;
+            --peach: #fefdca;
+            --blue: #d2e9fb;
+            --lavender: #e1ccec;
+            --text-dark: #5a5a5a;
+            --white: #ffffff;
+            --shadow: 0 8px 15px rgba(0,0,0,0.1);
+            --highlight: #ff85a2; 
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Jua', sans-serif;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            color: var(--text-dark);
+            background-color: var(--blue);
+        }
+
+        .app-container {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .bg-menu {
+            background-image: url('menu_bg.jpg'); 
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .bg-practice {
+            background-image: none !important;
+            background-color: var(--white);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2vh;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px 30px;
+            border-radius: 50px;
+            box-shadow: var(--shadow);
+            z-index: 10;
+        }
+
+        h1 { margin: 0; color: #ff85a2; font-size: clamp(1.2rem, 4vw, 2.2rem); }
+
+        #main-menu {
+            width: 100%;
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 30px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        #input-panel {
+            display: none;
+            width: 100%;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .title-input {
+            width: 80%;
+            padding: 12px;
+            font-size: 1.2rem;
+            border-radius: 20px;
+            border: 3px solid var(--pink);
+            margin-bottom: 15px;
+            font-family: 'Jua';
+            text-align: center;
+        }
+
+        .sentence-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .sentence-box {
+            padding: 10px;
+            border-radius: 15px;
+            border: 2px solid var(--lavender);
+            font-size: 1rem;
+            font-family: 'Jua';
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            font-family: 'Jua';
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.2s;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        }
+
+        button:active { transform: scale(0.95); box-shadow: none; }
+
+        .btn-input { background-color: var(--lavender); }
+        .btn-start { background-color: #ff85a2; color: white; font-size: 1.5rem; }
+        .btn-end-practice { background-color: #ff6b6b; color: white; display: none; }
+        .btn-whole-sentence { background-color: #ffd93d; margin-bottom: 2vh; font-size: 1.3rem; }
+        .btn-reset { background-color: #ff9aa2; color: white; }
+
+        #choice-screen {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5vh;
+            width: 100%;
+            max-width: 900px;
+            height: 75vh;
+        }
+
+        .chibi-box {
+            width: 90%;
+            height: 15vh;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 30px;
+            text-align: center;
+            font-size: clamp(1.2rem, 3.5vh, 2.5rem);
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: var(--shadow);
+            border: 6px solid white;
+            background-color: white;
+            line-height: 1.1;
+        }
+
+        .chibi-box:nth-child(1) { background-color: var(--pink); }
+        .chibi-box:nth-child(2) { background-color: var(--blue); }
+        .chibi-box:nth-child(3) { background-color: var(--peach); }
+        .chibi-box:nth-child(4) { background-color: var(--lavender); }
+
+        #reading-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: var(--white);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .word-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            max-width: 90%;
+            margin-bottom: 2vh;
+        }
+
+        .word-btn {
+            font-size: clamp(1.8rem, 8vh, 4rem);
+            padding: 10px 25px;
+            background: var(--blue);
+            border-radius: 20px;
+            border-bottom: 6px solid #a6cbe7;
+            cursor: pointer;
+            transition: color 0.3s ease, background-color 0.3s ease;
+            user-select: none;
+        }
+
+        .word-btn.speaking {
+            background-color: var(--highlight) !important;
+            color: white;
+            border-bottom-color: #e06684;
+        }
+
+        .nav-controls {
+            margin-top: 3vh;
+            display: flex;
+            gap: 20px;
+        }
+
+        #reward-star {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 15rem;
+            z-index: 200;
+            animation: starPop 0.8s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes starPop {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="container" class="app-container bg-menu">
+    <header id="app-header">
+        <h1>Teacher Mikee's English Learning Hub</h1>
+        <button id="end-practice-btn" class="btn-end-practice" onclick="exitToMenu()">✖ End Practice</button>
+    </header>
+
+    <div id="main-menu">
+        <div id="menu-buttons" class="btn-group">
+            <button class="btn-input" onclick="toggleInputPanel()">⌨️ INPUT</button>
+            <button class="btn-start" onclick="startActivity()">🚀 START</button>
+        </div>
+
+        <div id="input-panel">
+            <input type="text" id="lesson-title" class="title-input" placeholder="Lesson Title">
+            <div class="sentence-grid">
+                <input type="text" class="sentence-box" placeholder="1">
+                <input type="text" class="sentence-box" placeholder="2">
+                <input type="text" class="sentence-box" placeholder="3">
+                <input type="text" class="sentence-box" placeholder="4">
+                <input type="text" class="sentence-box" placeholder="5">
+                <input type="text" class="sentence-box" placeholder="6">
+                <input type="text" class="sentence-box" placeholder="7">
+                <input type="text" class="sentence-box" placeholder="8">
+                <input type="text" class="sentence-box" placeholder="9">
+                <input type="text" class="sentence-box" placeholder="10">
+            </div>
+            <div class="btn-group">
+                <button style="background:var(--peach)" onclick="saveData()">💾 SAVE</button>
+                <button class="btn-reset" onclick="resetInputData()">🔄 RESET</button>
+                <button style="background:var(--blue)" onclick="exportJSON()">📤 EXPORT</button>
+                <button style="background:var(--lavender)" onclick="document.getElementById('fileInput').click()">📥 IMPORT</button>
+                <input type="file" id="fileInput" style="display:none" accept=".json" onchange="importJSON(event)">
+                <button style="background:#ddd" onclick="toggleInputPanel()">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="choice-screen"></div>
+
+    <div id="reading-screen">
+        <button id="btn-read-full" class="btn-whole-sentence">🔊 Read Whole Sentence</button>
+        <div id="word-display" class="word-container"></div>
+        <div class="nav-controls">
+            <button style="background:#ccc" onclick="showChoiceScreen()">⬅ BACK</button>
+            <button style="background:#50c878; color:white; font-size:1.5rem" onclick="triggerReward()">⭐ FINISH</button>
+        </div>
+    </div>
+
+    <div id="reward-star">⭐</div>
+</div>
+
+<script>
+    const synth = window.speechSynthesis;
+    let preferredVoice = null;
+    let isReadingSentence = false;
+
+    // --- TTS: FIXED VOICE SELECTION ---
+    function loadVoices() {
+        const voices = synth.getVoices();
+        // Priority: Natural Female voices (Google US English, Samantha, etc.)
+        preferredVoice = voices.find(v => (v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Female')) && v.lang.includes('en-US')) 
+                        || voices.find(v => v.lang.includes('en')) 
+                        || voices[0];
+    }
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+    }
+    loadVoices();
+
+    function getSpeechSettings(text) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.voice = preferredVoice;
+        utterance.rate = 0.60;  // Natural slow rate
+        utterance.pitch = 1.10; // Friendly child-tone
+        return utterance;
+    }
+
+    // --- Sound FX ---
+    function playClickSound() {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    document.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON' || e.target.classList.contains('chibi-box') || e.target.classList.contains('word-btn')) {
+            playClickSound();
+        }
+    }, true);
+
+    // --- WHOLE SENTENCE READING: NO HIGHLIGHTING ---
+    function readWholeSentence(fullText) {
+        if (isReadingSentence) return;
+        synth.cancel();
+
+        // 200ms delay for natural feel
+        setTimeout(() => {
+            isReadingSentence = true;
+            const utterance = getSpeechSettings(fullText);
+            
+            utterance.onend = () => {
+                isReadingSentence = false;
+            };
+
+            synth.speak(utterance);
+        }, 200);
+    }
+
+    function speakWord(word, el) {
+        if (isReadingSentence) return;
+        synth.cancel();
+        
+        // 100ms delay for natural word feel
+        setTimeout(() => {
+            const utterance = getSpeechSettings(word);
+            el.classList.add('speaking');
+            utterance.onend = () => el.classList.remove('speaking');
+            synth.speak(utterance);
+        }, 100);
+    }
+
+    // --- RESET FUNCTION ---
+    function resetInputData() {
+        if (confirm("Are you sure you want to clear all inputs and saved data?")) {
+            localStorage.removeItem('mikee_hub_data');
+            document.getElementById('lesson-title').value = "";
+            document.querySelectorAll('.sentence-box').forEach(input => input.value = "");
+            alert("Reset complete! 🧹");
+        }
+    }
+
+    // --- UI FLOW ---
+    function toggleInputPanel() {
+        const panel = document.getElementById('input-panel');
+        const menuBtns = document.getElementById('menu-buttons');
+        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        menuBtns.style.display = panel.style.display === 'block' ? 'none' : 'flex';
+    }
+
+    function startActivity() {
+        const all = Array.from(document.querySelectorAll('.sentence-box')).map(i => i.value.trim()).filter(t => t.length > 0);
+        if (all.length < 1) return alert("Please enter sentences!");
+
+        const selected = all.sort(() => 0.5 - Math.random()).slice(0, 4);
+        const grid = document.getElementById('choice-screen');
+        grid.innerHTML = '';
+        
+        selected.forEach(text => {
+            const div = document.createElement('div');
+            div.className = 'chibi-box';
+            div.innerText = text;
+            div.onclick = () => openFullscreen(text);
+            grid.appendChild(div);
+        });
+
+        document.getElementById('main-menu').style.display = 'none';
+        grid.style.display = 'flex';
+        document.getElementById('end-practice-btn').style.display = 'block';
+        document.getElementById('container').classList.replace('bg-menu', 'bg-practice');
+    }
+
+    function openFullscreen(sentence) {
+        const display = document.getElementById('word-display');
+        display.innerHTML = '';
+        sentence.split(/\s+/).forEach(word => {
+            const btn = document.createElement('div');
+            btn.className = 'word-btn';
+            btn.innerText = word;
+            btn.onclick = () => speakWord(word, btn);
+            display.appendChild(btn);
+        });
+
+        document.getElementById('btn-read-full').onclick = () => readWholeSentence(sentence);
+        document.getElementById('choice-screen').style.display = 'none';
+        document.getElementById('reading-screen').style.display = 'flex';
+    }
+
+    function showChoiceScreen() {
+        synth.cancel();
+        isReadingSentence = false;
+        document.getElementById('reading-screen').style.display = 'none';
+        document.getElementById('choice-screen').style.display = 'flex';
+    }
+
+    function exitToMenu() {
+        synth.cancel();
+        isReadingSentence = false;
+        document.getElementById('reading-screen').style.display = 'none';
+        document.getElementById('choice-screen').style.display = 'none';
+        document.getElementById('main-menu').style.display = 'flex';
+        document.getElementById('end-practice-btn').style.display = 'none';
+        document.getElementById('container').classList.replace('bg-practice', 'bg-menu');
+    }
+
+    function triggerReward() {
+        const star = document.getElementById('reward-star');
+        star.style.display = 'block';
+        setTimeout(() => {
+            star.style.display = 'none';
+            showChoiceScreen();
+        }, 1500);
+    }
+
+    // --- DATA HANDLING ---
+    function saveData() {
+        const data = { 
+            title: document.getElementById('lesson-title').value,
+            sentences: Array.from(document.querySelectorAll('.sentence-box')).map(i => i.value.trim())
+        };
+        localStorage.setItem('mikee_hub_data', JSON.stringify(data));
+        alert("Saved! ✨");
+    }
+
+    window.onload = () => {
+        const d = JSON.parse(localStorage.getItem('mikee_hub_data'));
+        if (d) {
+            document.getElementById('lesson-title').value = d.title || "";
+            const inputs = document.querySelectorAll('.sentence-box');
+            d.sentences.forEach((t, i) => { if(inputs[i]) inputs[i].value = t; });
+        }
+    };
+
+    function exportJSON() {
+        const data = JSON.stringify({ 
+            title: document.getElementById('lesson-title').value,
+            sentences: Array.from(document.querySelectorAll('.sentence-box')).map(i => i.value.trim())
+        });
+        const blob = new Blob([data], { type: "application/json" });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${document.getElementById('lesson-title').value || 'Lesson'}.json`;
+        a.click();
+    }
+
+    function importJSON(e) {
+        const r = new FileReader();
+        r.onload = (ev) => {
+            const d = JSON.parse(ev.target.result);
+            document.getElementById('lesson-title').value = d.title;
+            const inputs = document.querySelectorAll('.sentence-box');
+            d.sentences.forEach((t, i) => { if(inputs[i]) inputs[i].value = t; });
+        };
+        r.readAsText(e.target.files[0]);
+    }
+</script>
+
+</body>
+</html>
